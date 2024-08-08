@@ -1,5 +1,11 @@
 # Cracker Barrel Peg Game Solver
 
+<a id="init-state"></a>
+<figure>
+  <img src="/images/pegGame.webp" alt="A picture of the cracker barrel board game" title="A puzzling game indeed." style="width:50%">
+  <figcaption>Source: <a href="https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.businessinsider.com%2Fcracker-barrel-review-cozy-charming-underwhelming-photos-prices-2022-2&psig=AOvVaw2mt44u8cwZkvZud28oOCmH&ust=1723172643327000&source=images&cd=vfe&opi=89978449&ved=0CBIQjhxqFwoTCPiKhry05IcDFQAAAAAdAAAAABAW">Business Insider</a> </figcaption>
+</figure>
+
 ## TLDR:
 **I am bad at the cracker barrel peg game. I am ostensibly less bad at programming, and so I *definitely* over-engineered the solution to this problem by creating a lightweight, quick solver for the cracker barrel peg game that uses BFS to search through the possible states and compute all of the different combinations for winning in about ***1/5*** of a second. Wow!**
 <details><summary>Spoiler: How many winning combinations are there in the original game?</summary>29760 different ways! Wow!</details>
@@ -13,12 +19,9 @@
 This is a section for the abbreviations that I will use throughout this document:
 
 <a id="LUT"></a> 
-LUT := LookUpTable A table that stores results of common computations. Used to save time by not recomputing results that are already known.
+LUT := LookUpTable A table that stores results of common computations. Used to save time by not recomputing results that are already known.<br>
 <a id="BFS"></a> 
 BFS := Breadth First Search: A strategy for exploring a graph by exploring all adjacent nodes first before proceeding any deeper. [Wiki](https://en.wikipedia.org/wiki/Breadth-first_search)
-
-## Abstract:
-
 
 ## Try it yourself
 Compile the code using: <br>
@@ -126,7 +129,7 @@ What this boils down to in binary is that there must be two bit set and 1 bit un
 This is where the mask and expected come into play. We can check that the above statement is true by performing a bitwise AND using the mask. This mask will AND only the 3 relevant bits with 1 and AND the rest with 0. Recall that anything AND 0 = 0 and anything AND 1 stays the same. <br>
 If the result of this operation is the expected value, then we know that the jump is legal, otherwise, the jump is illegal as one of the 3 essential parts is missing!
 
-An example of this function in play would be from the starting state using move 3->1->0 (start=3,jump=1,empty=0): <br>
+An example of this function in play would be from the starting state using(0x7FFE) move 3->1->0 (start=3,jump=1,empty=0): <br>
 We know that this move is legal as its one of the 2 opening moves, so let us confirm using our checkJump() function.
 ```
 startState    =   0111 1111 1111 1110
@@ -160,6 +163,31 @@ Lets break it down:
 2. mask - expected: Mask will ALWAYS have one extra bit 1 bit set compared to expected as mask should have the empty bit set and expected should not. Now if you do mask-expected, the result will be all zeros except for the empty bit.
 3. You can probably see where this is going, but if you OR the result of step 1 with the result of step 2, the result is that you have set just the empty bit which is exactly what we wanted! Remember that 0 OR 1 = 1.
 
+An example of this function in play would be from the starting state(0x7FFE) using move 3->1->0 (start=3,jump=1,empty=0): <br>
+We checked that this move is legal with <a href="#checkFunc">checkJump()</a> and so we want to perform the operation that was checked.
+```
+startState                0111 1111 1111 1110
+mask                      0000 0000 0000 1011
+expected                  0000 0000 0000 1010
+
+
+startState                0111 1111 1111 1110  
+~mask               &     1111 1111 1111 0100
+----------------------------------------------
+startState & ~mask        0111 1111 1111 0100 <- Notice that bits 3,1,0 cleared, rest stays same.
+
+
+mask                      0000 0000 0000 1011
+expected            -     0000 0000 0000 1010
+----------------------------------------------
+mask - expected           0000 0000 0000 0001 <- This gives us a mask with only the empty bit set.
+
+startState & ~mask        0111 1111 1111 0100
+mask - expected     |     0000 0000 0000 0001
+----------------------------------------------
+final result              0111 1111 1111 0101 <- Bit 3,1 cleared, Bit 0 set. Everything else same. 
+```
+
 </details>
 
 ### Main Function:
@@ -174,7 +202,7 @@ Once these structures have been created, we are ready to start the main workhors
 
 1. While we have not hit the terminal state (we can still make a move), we see which spots have pegs left (finding the positions where the bit has been set in the state).
 2. For every single spot that still has a peg on it, we consult the <a href="#JumpLUT">Jump LUT</a> to get an array of (expected,mask) 2-tuples.
-3. With this array, for every single 2-tuple, we call the <a href="#checkFunc">check()</a> function to see if the jump is valid.
+3. With this array, for every single 2-tuple, we call the <a href="#checkFunc">checkJump()</a> function to see if the jump is valid.
 4. If the check is valid, we perform the jump with <a href="#performJumpFunc">performJump()</a> to get the successor state. We add the (successor state,current state) key,value pair to the dictionary and then we add the successor state to the end of the queue to be evaluated later.
 5. We explore the rest of the 2-tuples for all other jump options for this peg and the rest of the peg by following the same routine as specified above.
 6. Once we are done, we backtrace from the final states back to the initial state to find the path that was taken by using the ParentState map that we defined earlier.
@@ -208,8 +236,8 @@ That means that it computed all 29760 winning move combinations in 1/5 of a seco
 Yes, there are a couple of ways that this could still be improved.
 
 <ul>
-    <li>You could use a <a href="https://en.wikipedia.org/wiki/Bidirectional_search">bi-directional BFS</a> to cut the search time from n^d to 2(n^(d/2)) as the latter is oftentimes cheaper. The reason I did not do this is because I did not know the ending states beforehand and so I could not start the search from the end (without cheating).</li>
-    <li>You could use a heuristic and perform a best-first search to only expand upon states that look good. The reason that I did not do this is because finding a consistent, admissible heuristic is genuinely difficult as there is easy way to really say that a state is "good".s</li>
+    <li>You could use a <a href="https://en.wikipedia.org/wiki/Bidirectional_search">bi-directional BFS</a> to cut the search time from n^d to 2(n^(d/2)) as the latter is oftentimes cheaper. The reason I did not do this is because I did not know the ending states beforehand and so I could not start the search from the end (without cheating and knowing the solutions beforehand).</li>
+    <li>You could use a heuristic and perform a best-first search to only expand upon states that look good. The reason that I did not do this is because finding a consistent, admissible heuristic is genuinely difficult as there is easy way to really say that a state is "good".</li>
     <li>Since the number of states in this game is definitely finite as there is only 2^15 = 32768 different states. Lets suppose that each state can go to 4 different states (a reasonable estimate as some have more some have less).<br>
     If each state is 2 bytes as mentioned previously, then we will have 2^15(different states) * 2^2(4 states) * 2^1(bytes) = 2^17 = 262,144 bytes or about 262KB.<br>
     This is obviously dirt cheap and definitely in the realm of possibility for a <a href="#LUT">LUT</a>. The reason that I did not do so is because it felt like cheating. You basically already knew the answer before you even started the computation. The only work that was done was to compose the answer that you already knew.<br>

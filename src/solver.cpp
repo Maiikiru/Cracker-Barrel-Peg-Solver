@@ -9,14 +9,13 @@
 #include <algorithm>
 #include <iomanip>
 
-// This will only work for the default board due to the fact that we are using lookup tables and 16 bit numbers.
-// If you want to expand upon this, you will need to discard these things.
 void findSolutionBfs(uint16_t initialState, const PossibleJumps lookupTable[15], std::unordered_map<uint16_t,std::vector<uint16_t>> &map);
 inline void backtrace(std::vector<uint16_t> finalState, const std::unordered_map<uint16_t,std::vector<uint16_t>> &map);
 void backtrace(std::vector<uint16_t> finalStates, const std::unordered_map<uint16_t,std::vector<uint16_t>> &map,std:: ofstream &file, std::string currentStr);
 inline std::string toString(uint16_t state);
 
 // Return back the indexes of positions with pegs as we should only consider spots with pegs.
+// state: the 16 bit state of the board.
 std::vector<unsigned char> getPegs(uint16_t state){
     std::vector<unsigned char> empty_pegs;
     for(int i=0;state;i++, state >>= 1){
@@ -30,7 +29,9 @@ std::vector<unsigned char> getPegs(uint16_t state){
 
 
 static int count;
-//Find the tree that caused this all...
+//This function will start from the final states and backtrace its way back by recursively writing all parents up until the initial state to a file.
+// finalStates: the states that you want to find the parents for.
+// map: the map of parent states. Should be of the form <currentState, vector<parentState>>
 inline void backtrace(std::vector<uint16_t> finalStates, const std::unordered_map<uint16_t,std::vector<uint16_t>> &map){
     std::ofstream file;
     file.open("output.txt");
@@ -41,6 +42,7 @@ inline void backtrace(std::vector<uint16_t> finalStates, const std::unordered_ma
     file.close();
 }
 
+// The actual recursive method that finds the parents and writes to file.
 void backtrace(std::vector<uint16_t> finalStates, const std::unordered_map<uint16_t,std::vector<uint16_t>> &map, std::ofstream &file, std::string currentStr){
     for(uint16_t state : finalStates){
         if(map.count(state)){
@@ -53,12 +55,17 @@ void backtrace(std::vector<uint16_t> finalStates, const std::unordered_map<uint1
     }
 }
 
+//This function converts a unsigned 16 bit state to a hex string of the form 0xXXXX.
 inline std::string toString(uint16_t state){
     std::stringstream sstream;
     sstream << "0x" <<std::setfill('0') << std::setw(4) << std::hex << state;
     return sstream.str();
 }
 
+//This method will compute every single solution using BFS.
+// initialState: the state of the board we want to start at.
+// lookupTable: the lookup table containing information for every peg about possible jumps in that position. It does this with an array of tuples, (expected,mask)
+// map: A pointer to an empty map. (Will be filled with parent states).
 inline void findSolutionBfs(uint16_t initialState, const PossibleJumps lookupTable[15], std::unordered_map<uint16_t,std::vector<uint16_t>> &map){
     std::queue<uint16_t> queue;
     queue.push(initialState);

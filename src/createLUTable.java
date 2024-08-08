@@ -1,5 +1,6 @@
 package src;
 class Main{
+    //This quick helper class helps us create a LU Table quickly so we may hardcode it in board.h
     public static void main(String[] args){
         short [][][] arr = {
             {{1,3},{2,5}},

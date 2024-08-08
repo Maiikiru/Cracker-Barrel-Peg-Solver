@@ -40,28 +40,10 @@ inline unsigned char numSetBits(uint16_t value){
 // The length of the lookup table will be 15 elements.
 // Be very careful here as we're hyper optimizing, this leads to some pretty bad
 // code practices being employed here.
-/*
-Key:
-Pin representation:
-0: 0x8000
-1: 0x4000
-2: 0x2000
-3: 0x1000
-4: 0x0800
-5: 0x0400
-6: 0x0200
-7: 0x0100
-8: 0x0080
-9: 0x0040
-10: 0x0020
-11: 0x0010
-12: 0x0008
-13: 0x0004
-14: 0x0002
-*/
+// We generated this using createLUTable.java
 PossibleJumps* createLookupTable(){
-    //Order L R TL TR BL BR
-    //JumpDict takes expected, mask
+    //Order of checks is: L R TL TR BL BR
+    //JumpInfo takes expected, mask in that order.
 
     PossibleJumps* lookupTable = new PossibleJumps[15];
 
@@ -115,6 +97,7 @@ PossibleJumps* createLookupTable(){
     return lookupTable;
 }
 
+// Free the lookup table that we allocated on the heap.
 void freeLookupTable(PossibleJumps* lookupTable){
     for(int i=0;i<15;i++){
         delete[] lookupTable[i].arr;
